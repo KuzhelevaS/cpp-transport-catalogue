@@ -1,11 +1,19 @@
 #include "input_reader.h"
 
+
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+#include <string>
 #include <sstream>
 #include <algorithm>
 
+#include "geo.h"
+
 namespace transport::input {
-	using geo::Coordinates;
 	namespace detail {
+		using geo::Coordinates;
+
 		enum class QueryType {
 			ADD_BUS,
 			ADD_STOP
@@ -102,20 +110,56 @@ namespace transport::input {
 			}
 			return is;
 		}
+
+		struct Stop {
+			Coordinates coordinates;
+			std::unordered_map<std::string, int> distances;
+		};
+		struct Route {
+			bool is_looped; // > if looped, - if not looped
+			std::vector<std::string> stops;
+		};
+
+		struct ResultGroup {
+			std::unordered_map<std::string, Stop> stops;
+			std::unordered_map<std::string, Route> buses;
+		};
+
+		ResultGroup ParseQueries(std::istream & input, size_t n) {
+			ResultGroup result;
+			for (size_t i = 0; i < n; ++i) {
+				Query query;
+				input >> query;
+				if (query.type == QueryType::ADD_STOP) {
+					result.stops[query.item_name] = {query.coordinates, query.distances};
+				} else if (query.type == QueryType::ADD_BUS) {
+					result.buses[query.item_name] = {query.is_route_looped,
+						std::move(query.stops)};
+				}
+			}
+			return result;
+		}
 	}
 
-	ResultGroup ParseQueries(std::istream & input, size_t n) {
-		ResultGroup result;
-		for (size_t i = 0; i < n; ++i) {
-			detail::Query query;
-			input >> query;
-			if (query.type == detail::QueryType::ADD_STOP) {
-				result.stops[query.item_name] = {query.coordinates, query.distances};
-			} else if (query.type == detail::QueryType::ADD_BUS) {
-				result.buses[query.item_name] = {query.is_route_looped,
-					std::move(query.stops)};
+	void FillCatalogue(TransportCatalogue & t) {
+		int n;
+		std::cin >> n;
+		auto input_request_queue = detail::ParseQueries(std::cin, n);
+
+		for (auto & [stop_name, stop_data] : input_request_queue.stops) {
+			t.AddStop(stop_name, stop_data.coordinates);
+		}
+
+		for (auto & [stop_name, stop_data] : input_request_queue.stops) {
+			for (auto & [other_name, distance] : stop_data.distances) {
+				auto stop_from = t.FindStop(stop_name);
+				auto stop_to = t.FindStop(other_name);
+				t.SetStopDistance(stop_from.value(), stop_to.value(), distance);
 			}
 		}
-		return result;
+
+		for (auto & [bus_name, route] : input_request_queue.buses) {
+			t.AddRoute(bus_name, route.stops, route.is_looped);
+		}
 	}
 }

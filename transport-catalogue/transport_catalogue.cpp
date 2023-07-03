@@ -1,7 +1,6 @@
 #include "transport_catalogue.h"
 
 #include <unordered_set>
-#include <iostream>
 
 namespace transport {
 	using geo::Coordinates;
