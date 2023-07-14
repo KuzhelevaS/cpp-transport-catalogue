@@ -61,7 +61,8 @@ namespace transport {
 			b.stops.push_back(stops[route_stops[i]]);
 			stops[route_stops[i]]->buses.insert(b.name);
 		}
-
+		b.start = b.stops.front();
+		b.finish = b.stops.back();
 		if (!is_looped) {
 			for (size_t i = b.stops.size() - 1; i > 0; --i) {
 				b.stops.push_back(b.stops[i - 1]);
@@ -111,5 +112,14 @@ namespace transport {
 
 	size_t TransportCatalogue::PairStopsHasher::operator()(const std::pair<StopPtr, StopPtr>& stops) const {
 		return std::hash<const void*>{}(stops.first) * 37 + std::hash<const void*>{}(stops.second);
+	}
+
+	std::vector<TransportCatalogue::BusPtr> TransportCatalogue::GetAllRoutes() const {
+		std::vector<BusPtr> result;
+		result.reserve(buses_storage.size());
+		for (auto & bus: buses_storage) {
+			result.push_back(&bus);
+		}
+		return result;
 	}
 }

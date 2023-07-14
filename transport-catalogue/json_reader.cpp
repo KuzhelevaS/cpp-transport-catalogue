@@ -1,0 +1,151 @@
+#include "json_reader.h"
+
+
+namespace transport::json_reader {
+	using namespace ::json;
+
+	Reader::Reader(std::istream & in, std::ostream & out)
+		: in_(in), out_(out) {}
+
+	handler::InputResultGroup Reader::Read() const {
+		Document doc = Load(in_);
+		handler::InputResultGroup result;
+
+		ExtractBaseRequest(doc, result.inputs);
+		ExtractStatRequest(doc, result.outputs);
+		ExtractRenderSettings(doc, result.settings);
+
+		return result;
+	}
+
+	void Reader::ExtractBaseRequest(const Document & doc, handler::InputGroup & inputs) const {
+		if (doc.GetRoot().AsMap().count("base_requests"s)) {
+			for (auto request : doc.GetRoot().AsMap().at("base_requests"s).AsArray()) {
+				if (request.AsMap().at("type"s).AsString() == "Stop"s) {
+					std::unordered_map<std::string, int> distances;
+					for (auto [road, distance] : request.AsMap().at("road_distances"s).AsMap()) {
+						distances[road] = distance.AsDouble();
+					}
+					handler::Stop stop {
+						{request.AsMap().at("latitude"s).AsDouble(),
+						request.AsMap().at("longitude"s).AsDouble()},
+						distances
+					};
+					inputs.stops.emplace(request.AsMap().at("name"s).AsString(), stop);
+				} else if (request.AsMap().at("type"s).AsString() == "Bus"s) {
+					std::vector<std::string> stops;
+					for (auto & stop : request.AsMap().at("stops"s).AsArray()) {
+						stops.push_back(std::move(stop.AsString()));
+					}
+					inputs.buses.emplace(request.AsMap().at("name"s).AsString(),
+						handler::Route {request.AsMap().at("is_roundtrip"s).AsBool(), std::move(stops)});
+				}
+			}
+		}
+	}
+
+	void Reader::ExtractStatRequest(const Document & doc, handler::OutputGroup & outputs) const {
+		if (doc.GetRoot().AsMap().count("stat_requests"s)) {
+			for (auto request : doc.GetRoot().AsMap().at("stat_requests"s).AsArray()) {
+				handler::Query query;
+				if (request.AsMap().at("type"s).AsString() == "Stop"s) {
+					query.type = handler::QueryType::STOP;
+				} else if (request.AsMap().at("type"s).AsString() == "Bus"s) {
+					query.type = handler::QueryType::BUS;
+				} else if (request.AsMap().at("type"s).AsString() == "Map"s) {
+					query.type = handler::QueryType::MAP;
+				} else {
+					continue;
+				}
+				query.id = request.AsMap().at("id"s).AsInt();
+				if (request.AsMap().count("name"s)) {
+					query.name = request.AsMap().at("name"s).AsString();
+				}
+				outputs.queries.push_back(std::move(query));
+			}
+		}
+	}
+
+	void Reader::ExtractRenderSettings(const Document & doc, renderer::Settings & settings) const {
+		if (doc.GetRoot().AsMap().count("render_settings"s) && !doc.GetRoot().AsMap().at("render_settings"s).AsMap().empty()) {
+			const ::json::Dict& doc_settings = doc.GetRoot().AsMap().at("render_settings"s).AsMap();
+			if (doc_settings.count("width"s)) {
+				settings.width = doc_settings.at("width"s).AsDouble();
+			}
+			if (doc_settings.count("height"s)) {
+				settings.height = doc_settings.at("height"s).AsDouble();
+			}
+			if (doc_settings.count("padding"s)) {
+				settings.padding = doc_settings.at("padding"s).AsDouble();
+			}
+			if (doc_settings.count("line_width"s)) {
+				settings.line_width = doc_settings.at("line_width"s).AsDouble();
+			}
+			if (doc_settings.count("stop_radius"s)) {
+				settings.stop_radius = doc_settings.at("stop_radius"s).AsDouble();
+			}
+			if (doc_settings.count("bus_label_font_size"s)) {
+				settings.bus_label_font_size = doc_settings.at("bus_label_font_size"s).AsInt();
+			}
+			if (doc_settings.count("bus_label_offset"s)) {
+				settings.bus_label_offset = {
+					doc_settings.at("bus_label_offset"s).AsArray().at(0).AsDouble(),
+					doc_settings.at("bus_label_offset"s).AsArray().at(1).AsDouble()
+				};
+			}
+			if (doc_settings.count("stop_label_font_size"s)) {
+				settings.stop_label_font_size = doc_settings.at("stop_label_font_size"s).AsInt();
+			}
+			if (doc_settings.count("stop_label_offset"s)) {
+				settings.stop_label_offset = {
+					doc_settings.at("stop_label_offset"s).AsArray().at(0).AsDouble(),
+					doc_settings.at("stop_label_offset"s).AsArray().at(1).AsDouble()
+				};
+			}
+			if (doc_settings.count("underlayer_color"s)) {
+				settings.underlayer_color = ExtractColor(doc_settings.at("underlayer_color"s));
+			}
+			if (doc_settings.count("underlayer_width"s)) {
+				settings.underlayer_width = doc_settings.at("underlayer_width"s).AsDouble();
+			}
+			if (doc_settings.count("color_palette"s)) {
+				for (auto & color : doc_settings.at("color_palette"s).AsArray()) {
+					settings.color_palette.push_back(std::move(ExtractColor(color)));
+				}
+			}
+		}
+	}
+
+	svg::Color Reader::ExtractColor(const ::json::Node & node) const {
+		if (node.IsArray()) {
+			if (node.AsArray().size() == 3) {
+				return svg::Rgb{
+					static_cast<uint8_t>(node.AsArray().at(0).AsInt()),
+					static_cast<uint8_t>(node.AsArray().at(1).AsInt()),
+					static_cast<uint8_t>(node.AsArray().at(2).AsInt())
+				};
+			} else {
+				return svg::Rgba{
+					static_cast<uint8_t>(node.AsArray().at(0).AsInt()),
+					static_cast<uint8_t>(node.AsArray().at(1).AsInt()),
+					static_cast<uint8_t>(node.AsArray().at(2).AsInt()),
+					node.AsArray().at(3).AsDouble()
+				};
+			}
+		} else if (node.IsString()) {
+			return node.AsString();
+		} else {
+			return svg::Color{};
+		}
+	}
+
+	void Reader::Write(const handler::WritingResponces & responces) const {
+		Array result;
+		for (auto & responce : responces) {
+			result.push_back(visit(WriteVariant{responce.first}, responce.second));
+		}
+		Document doc(result);
+		Print(doc, out_);
+	}
+
+}
