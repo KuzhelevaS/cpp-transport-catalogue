@@ -3,6 +3,7 @@
 #include "request_handler.h"
 #include "map_renderer.h"
 #include "json.h"
+#include "json_builder.h"
 
 namespace transport::json_reader {
 	using namespace std::literals;
@@ -25,30 +26,45 @@ namespace transport::json_reader {
 		struct WriteVariant {
 			int id;
 			::json::Node operator()(handler::Errors) const {
-				return ::json::Dict{{"request_id"s, id}, {"error_message"s, "not found"s}};
+				return ::json::Builder{}
+					.StartDict()
+						.Key("request_id"s).Value(id)
+						.Key("error_message"s).Value("not found"s)
+					.EndDict()
+					.Build().AsDict();
 			}
 			::json::Node operator()(std::vector<std::string_view> buses) const {
-				::json::Array result_buses;
-				result_buses.reserve(buses.size());
-				for (auto bus : buses) {
-					result_buses.emplace_back(std::string(bus));
+				auto builder = json::Builder{};
+				auto buses_result = builder.StartArray();
+				for (std::string_view bus : buses) {
+					buses_result.Value(::json::Node(std::string(bus)));
 				}
-				return ::json::Dict{{"request_id"s, id}, {"buses"s, result_buses}};
+
+				return ::json::Builder{}
+					.StartDict()
+						.Key("request_id"s).Value(id)
+						.Key("buses"s).Value(buses_result.EndArray().Build().AsArray())
+					.EndDict()
+					.Build().AsDict();
 			}
 			::json::Node operator()(TransportCatalogue::RouteInfo route) const {
-				::json::Dict result_route;
-				result_route["request_id"] = id;
-				result_route["curvature"] = route.curvature;
-				result_route["route_length"] = static_cast<double>(route.length);
-				result_route["stop_count"] = route.stops_count;
-				result_route["unique_stop_count"] = route.unique_stops_count;
-				return result_route;
+				return ::json::Builder{}
+					.StartDict()
+						.Key("request_id"s).Value(id)
+						.Key("curvature"s).Value(route.curvature)
+						.Key("route_length"s).Value(static_cast<double>(route.length))
+						.Key("stop_count"s).Value(route.stops_count)
+						.Key("unique_stop_count"s).Value(route.unique_stops_count)
+					.EndDict()
+					.Build().AsDict();
 			}
 			::json::Node operator()(std::string str) const {
-				::json::Dict result_map;
-				result_map["request_id"] = id;
-				result_map["map"] = std::move(str);
-				return result_map;
+				return ::json::Builder{}
+					.StartDict()
+						.Key("request_id"s).Value(id)
+						.Key("map"s).Value(std::move(str))
+					.EndDict()
+					.Build().AsDict();
 			}
 		};
 	};

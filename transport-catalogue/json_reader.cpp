@@ -19,47 +19,47 @@ namespace transport::json_reader {
 	}
 
 	void Reader::ExtractBaseRequest(const Document & doc, handler::InputGroup & inputs) const {
-		if (doc.GetRoot().AsMap().count("base_requests"s)) {
-			for (auto request : doc.GetRoot().AsMap().at("base_requests"s).AsArray()) {
-				if (request.AsMap().at("type"s).AsString() == "Stop"s) {
+		if (doc.GetRoot().AsDict().count("base_requests"s)) {
+			for (auto request : doc.GetRoot().AsDict().at("base_requests"s).AsArray()) {
+				if (request.AsDict().at("type"s).AsString() == "Stop"s) {
 					std::unordered_map<std::string, int> distances;
-					for (auto [road, distance] : request.AsMap().at("road_distances"s).AsMap()) {
+					for (auto [road, distance] : request.AsDict().at("road_distances"s).AsDict()) {
 						distances[road] = distance.AsDouble();
 					}
 					handler::Stop stop {
-						{request.AsMap().at("latitude"s).AsDouble(),
-						request.AsMap().at("longitude"s).AsDouble()},
+						{request.AsDict().at("latitude"s).AsDouble(),
+						request.AsDict().at("longitude"s).AsDouble()},
 						distances
 					};
-					inputs.stops.emplace(request.AsMap().at("name"s).AsString(), stop);
-				} else if (request.AsMap().at("type"s).AsString() == "Bus"s) {
+					inputs.stops.emplace(request.AsDict().at("name"s).AsString(), stop);
+				} else if (request.AsDict().at("type"s).AsString() == "Bus"s) {
 					std::vector<std::string> stops;
-					for (auto & stop : request.AsMap().at("stops"s).AsArray()) {
+					for (auto & stop : request.AsDict().at("stops"s).AsArray()) {
 						stops.push_back(std::move(stop.AsString()));
 					}
-					inputs.buses.emplace(request.AsMap().at("name"s).AsString(),
-						handler::Route {request.AsMap().at("is_roundtrip"s).AsBool(), std::move(stops)});
+					inputs.buses.emplace(request.AsDict().at("name"s).AsString(),
+						handler::Route {request.AsDict().at("is_roundtrip"s).AsBool(), std::move(stops)});
 				}
 			}
 		}
 	}
 
 	void Reader::ExtractStatRequest(const Document & doc, handler::OutputGroup & outputs) const {
-		if (doc.GetRoot().AsMap().count("stat_requests"s)) {
-			for (auto request : doc.GetRoot().AsMap().at("stat_requests"s).AsArray()) {
+		if (doc.GetRoot().AsDict().count("stat_requests"s)) {
+			for (auto request : doc.GetRoot().AsDict().at("stat_requests"s).AsArray()) {
 				handler::Query query;
-				if (request.AsMap().at("type"s).AsString() == "Stop"s) {
+				if (request.AsDict().at("type"s).AsString() == "Stop"s) {
 					query.type = handler::QueryType::STOP;
-				} else if (request.AsMap().at("type"s).AsString() == "Bus"s) {
+				} else if (request.AsDict().at("type"s).AsString() == "Bus"s) {
 					query.type = handler::QueryType::BUS;
-				} else if (request.AsMap().at("type"s).AsString() == "Map"s) {
+				} else if (request.AsDict().at("type"s).AsString() == "Map"s) {
 					query.type = handler::QueryType::MAP;
 				} else {
 					continue;
 				}
-				query.id = request.AsMap().at("id"s).AsInt();
-				if (request.AsMap().count("name"s)) {
-					query.name = request.AsMap().at("name"s).AsString();
+				query.id = request.AsDict().at("id"s).AsInt();
+				if (request.AsDict().count("name"s)) {
+					query.name = request.AsDict().at("name"s).AsString();
 				}
 				outputs.queries.push_back(std::move(query));
 			}
@@ -67,8 +67,8 @@ namespace transport::json_reader {
 	}
 
 	void Reader::ExtractRenderSettings(const Document & doc, renderer::Settings & settings) const {
-		if (doc.GetRoot().AsMap().count("render_settings"s) && !doc.GetRoot().AsMap().at("render_settings"s).AsMap().empty()) {
-			const ::json::Dict& doc_settings = doc.GetRoot().AsMap().at("render_settings"s).AsMap();
+		if (doc.GetRoot().AsDict().count("render_settings"s) && !doc.GetRoot().AsDict().at("render_settings"s).AsDict().empty()) {
+			const ::json::Dict& doc_settings = doc.GetRoot().AsDict().at("render_settings"s).AsDict();
 			if (doc_settings.count("width"s)) {
 				settings.width = doc_settings.at("width"s).AsDouble();
 			}
@@ -140,11 +140,12 @@ namespace transport::json_reader {
 	}
 
 	void Reader::Write(const handler::WritingResponces & responces) const {
-		Array result;
+		auto builder = json::Builder{};
+		auto result_builder = builder.StartArray();
 		for (auto & responce : responces) {
-			result.push_back(visit(WriteVariant{responce.first}, responce.second));
+			result_builder.Value(visit(WriteVariant{responce.first}, responce.second));
 		}
-		Document doc(result);
+		Document doc(result_builder.EndArray().Build().AsArray());
 		Print(doc, out_);
 	}
 

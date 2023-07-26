@@ -332,7 +332,7 @@ namespace json {
 	bool Node::IsArray() const {
 		return std::holds_alternative<Array>(data_);
 	}
-	bool Node::IsMap() const {
+	bool Node::IsDict() const {
 		return std::holds_alternative<Dict>(data_);
 	}
 
@@ -369,11 +369,17 @@ namespace json {
 		}
 		return std::get<Array>(data_);
 	}
-	const Dict& Node::AsMap() const {
-		if (!IsMap()) {
+	Array& Node::AsArray() {
+		return const_cast<Array &>(static_cast<const Node &>(*this).AsArray());
+	}
+	const Dict& Node::AsDict() const {
+		if (!IsDict()) {
 			throw std::logic_error("node is not map");
 		}
 		return std::get<Dict>(data_);
+	}
+	Dict& Node::AsDict() {
+		return const_cast<Dict &>(static_cast<const Node &>(*this).AsDict());
 	}
 
 	const Node::Data& Node::GetValue() const {
