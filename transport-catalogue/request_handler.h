@@ -1,6 +1,7 @@
 #pragma once
 
 #include "transport_catalogue.h"
+#include "transport_router.h"
 #include "map_renderer.h"
 #include <variant>
 
@@ -21,27 +22,35 @@ namespace transport::handler {
 	enum class QueryType {
 		BUS,
 		STOP,
-		MAP
+		MAP,
+		ROUTE
 	};
 	struct Query {
 		int id;
 		QueryType type;
 		std::string name;
+		std::string from;
+		std::string to;
 	};
 	struct OutputGroup {
 		std::vector<Query> queries;
+	};
+	struct RouteGroup {
+		TransportRouter::RouterSettings settings;
 	};
 
 	struct InputResultGroup {
 		InputGroup inputs;
 		OutputGroup outputs;
 		renderer::Settings settings;
+		RouteGroup router;
 	};
 
 	enum class Errors {
 		NOT_FOUND
 	};
-	using Responce = std::variant<Errors, std::vector<std::string_view>, TransportCatalogue::RouteInfo, std::string>;
+	using Responce = std::variant<Errors, std::vector<std::string_view>,
+		TransportCatalogue::RouteInfo, std::string, TransportRouter::Route>;
 	using WritingResponces = std::vector<std::pair<int, Responce>>; // id, data
 
 	// Интерфейс чтения/записи
@@ -60,6 +69,7 @@ namespace transport::handler {
 		TransportCatalogue db_;
 		renderer::MapRenderer renderer_;
 		const InputOutput* io_;
+		TransportRouter router_;
 
 		void FillTransportCatalogue(const InputGroup & inputs);
 		WritingResponces GetTransportData(const OutputGroup & outputs);

@@ -13,6 +13,7 @@ namespace transport::handler {
 		// Передаем настройки в систему
 		renderer_.SetSettings(queries.settings);
 		FillTransportCatalogue(queries.inputs);
+		router_.Init(queries.router.settings, db_);
 
 		// Формируем и печатаем ответы на запросы
 		auto printable_result = GetTransportData(queries.outputs);
@@ -66,6 +67,13 @@ namespace transport::handler {
 				}
 			} else if (entity.type == QueryType::MAP) {
 				responce.second = GenerateMap();
+			} else if (entity.type == QueryType::ROUTE) {
+				auto route = router_.GetRoute(entity.from, entity.to);
+				if (route.has_value()) {
+					responce.second = route.value();
+				}else {
+					responce.second = Errors::NOT_FOUND;
+				}
 			}
 			result.push_back(responce);
 		}

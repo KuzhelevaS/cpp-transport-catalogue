@@ -29,6 +29,7 @@ namespace transport {
 		std::vector<std::string_view> GetBusesForStop(StopPtr stop) const;
 		void SetStopDistance(StopPtr from, StopPtr to, int distance);
 		int GetStopDistance(StopPtr from, StopPtr to) const;
+		int GetStopCount() const;
 
 		void AddRoute(std::string_view name, const std::vector<std::string> & stops,
 			bool is_looped);

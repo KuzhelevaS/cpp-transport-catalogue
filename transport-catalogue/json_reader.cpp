@@ -14,6 +14,7 @@ namespace transport::json_reader {
 		ExtractBaseRequest(doc, result.inputs);
 		ExtractStatRequest(doc, result.outputs);
 		ExtractRenderSettings(doc, result.settings);
+		ExtractRouteSettings(doc, result.router);
 
 		return result;
 	}
@@ -54,6 +55,8 @@ namespace transport::json_reader {
 					query.type = handler::QueryType::BUS;
 				} else if (request.AsDict().at("type"s).AsString() == "Map"s) {
 					query.type = handler::QueryType::MAP;
+				} else if (request.AsDict().at("type"s).AsString() == "Route"s) {
+					query.type = handler::QueryType::ROUTE;
 				} else {
 					continue;
 				}
@@ -61,7 +64,25 @@ namespace transport::json_reader {
 				if (request.AsDict().count("name"s)) {
 					query.name = request.AsDict().at("name"s).AsString();
 				}
+				if (request.AsDict().count("from"s)) {
+					query.from = request.AsDict().at("from"s).AsString();
+				}
+				if (request.AsDict().count("to"s)) {
+					query.to = request.AsDict().at("to"s).AsString();
+				}
 				outputs.queries.push_back(std::move(query));
+			}
+		}
+	}
+
+	void Reader::ExtractRouteSettings(const Document & doc, handler::RouteGroup & router) const {
+		if (doc.GetRoot().AsDict().count("routing_settings"s) && !doc.GetRoot().AsDict().at("routing_settings"s).AsDict().empty()) {
+			const ::json::Dict& route_settings = doc.GetRoot().AsDict().at("routing_settings"s).AsDict();
+			if (route_settings.count("bus_wait_time"s)) {
+				router.settings.bus_wait_time = route_settings.at("bus_wait_time"s).AsInt();
+			}
+			if (route_settings.count("bus_velocity"s)) {
+				router.settings.bus_velocity = route_settings.at("bus_velocity"s).AsDouble();
 			}
 		}
 	}

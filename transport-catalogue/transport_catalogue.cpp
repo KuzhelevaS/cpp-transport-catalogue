@@ -40,6 +40,10 @@ namespace transport {
 		return stop_distances.at({from, to});
 	}
 
+	int TransportCatalogue::GetStopCount() const {
+		return stops.size();
+	}
+
 	void TransportCatalogue::AddRoute(std::string_view name,
 		const std::vector<std::string> & route_stops, bool is_looped)
 	{
