@@ -52,6 +52,7 @@ namespace transport {
 			return;
 		}
 		Bus bus;
+		bus.is_looped = is_looped;
 		bus.name = std::string(name);
 		buses_storage.push_back(std::move(bus));
 		buses[buses_storage.back().name] = &buses_storage.back();
@@ -123,6 +124,24 @@ namespace transport {
 		result.reserve(buses_storage.size());
 		for (auto & bus: buses_storage) {
 			result.push_back(&bus);
+		}
+		return result;
+	}
+
+	std::vector<TransportCatalogue::StopPtr> TransportCatalogue::GetAllStops() const {
+		std::vector<StopPtr> result;
+		result.reserve(stops_storage.size());
+		for (auto & stop: stops_storage) {
+			result.push_back(&stop);
+		}
+		return result;
+	}
+
+	std::vector<TransportCatalogue::Distance> TransportCatalogue::GetAllDistances() const {
+		std::vector<Distance> result;
+		result.reserve(stop_distances.size());
+		for (auto & [key, value]: stop_distances) {
+			result.push_back(Distance{key.first, key.second, value});
 		}
 		return result;
 	}

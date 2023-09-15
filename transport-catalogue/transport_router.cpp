@@ -9,7 +9,8 @@ namespace transport {
 
 	void TransportRouter::SetSettings(RouterSettings settings) {
 		settings_.bus_wait_time = settings.bus_wait_time;
-		settings_.bus_velocity = settings.bus_velocity * 1000.0 / 60.0; // км/ч переводим в м/мин
+		constexpr double conversion_rate = 1000.0 / 60.0; // км/ч переводим в м/мин
+		settings_.bus_velocity = settings.bus_velocity * conversion_rate;
 	}
 
 	void TransportRouter::MakeGraph(const TransportCatalogue & catalogue) {

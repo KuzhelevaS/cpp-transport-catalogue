@@ -30,12 +30,20 @@ namespace transport {
 		void SetStopDistance(StopPtr from, StopPtr to, int distance);
 		int GetStopDistance(StopPtr from, StopPtr to) const;
 		int GetStopCount() const;
+		std::vector<StopPtr> GetAllStops() const;
 
 		void AddRoute(std::string_view name, const std::vector<std::string> & stops,
 			bool is_looped);
 		std::optional<BusPtr> FindRoute(std::string_view name) const;
 		RouteInfo GetRouteInfo(BusPtr bus) const;
 		std::vector<BusPtr> GetAllRoutes() const;
+
+		struct Distance {
+			StopPtr from_stop;
+			StopPtr to_stop;
+			int distance;
+		};
+		std::vector<Distance> GetAllDistances()const;
 
 	private:
 		std::deque<Stop> stops_storage;

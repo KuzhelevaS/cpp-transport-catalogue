@@ -13,8 +13,9 @@ namespace transport::json_reader {
 
 		ExtractBaseRequest(doc, result.inputs);
 		ExtractStatRequest(doc, result.outputs);
-		ExtractRenderSettings(doc, result.settings);
+		ExtractRenderSettings(doc, result.render_settings);
 		ExtractRouteSettings(doc, result.router);
+		ExtractDateBaseInfo(doc, result.data_base);
 
 		return result;
 	}
@@ -83,6 +84,15 @@ namespace transport::json_reader {
 			}
 			if (route_settings.count("bus_velocity"s)) {
 				router.settings.bus_velocity = route_settings.at("bus_velocity"s).AsDouble();
+			}
+		}
+	}
+
+	void Reader::ExtractDateBaseInfo(const Document & doc, handler::DateBase & date_base) const {
+		if (doc.GetRoot().AsDict().count("serialization_settings"s) && !doc.GetRoot().AsDict().at("serialization_settings"s).AsDict().empty()) {
+			const ::json::Dict& date_base_settings = doc.GetRoot().AsDict().at("serialization_settings"s).AsDict();
+			if (date_base_settings.count("file"s)) {
+				date_base.file_name = date_base_settings.at("file"s).AsString();
 			}
 		}
 	}

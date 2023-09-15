@@ -39,11 +39,16 @@ namespace transport::handler {
 		TransportRouter::RouterSettings settings;
 	};
 
+	struct DateBase {
+		std::string file_name;
+	};
+
 	struct InputResultGroup {
 		InputGroup inputs;
 		OutputGroup outputs;
-		renderer::Settings settings;
+		renderer::Settings render_settings;
 		RouteGroup router;
+		DateBase data_base;
 	};
 
 	enum class Errors {
@@ -63,10 +68,11 @@ namespace transport::handler {
 	class RequestHandler {
 	public:
 		RequestHandler(InputOutput* io);
-		void RunInputOutput();
+		void MakeBase();
+		void ProcessRequests();
 
 	private:
-		TransportCatalogue db_;
+		TransportCatalogue tc_;
 		renderer::MapRenderer renderer_;
 		const InputOutput* io_;
 		TransportRouter router_;

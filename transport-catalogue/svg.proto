@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package data_base;
+
+message Point {
+	double x = 1;
+	double y = 2;
+}
+
+enum ColorType {
+	NONE = 0;
+	STRING = 1;
+	RGB = 2;
+	RGBA = 3;
+}
+
+message Color {
+	ColorType type = 1;
+	string name = 2;
+	int32 red = 3;
+	int32 green = 4;
+	int32 blue = 5;
+	double alpha = 6;
+}

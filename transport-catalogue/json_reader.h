@@ -21,6 +21,7 @@ namespace transport::json_reader {
 		void ExtractStatRequest(const ::json::Document & doc, handler::OutputGroup & outputs) const;
 		void ExtractRenderSettings(const ::json::Document & doc, renderer::Settings & settings) const;
 		void ExtractRouteSettings(const ::json::Document & doc, handler::RouteGroup & router) const;
+		void ExtractDateBaseInfo(const ::json::Document & doc, handler::DateBase & router) const;
 
 		svg::Color ExtractColor(const ::json::Node & node) const;
 

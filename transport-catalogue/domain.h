@@ -17,8 +17,9 @@ namespace transport::domain {
 
 	struct Bus {
 		std::string name;
-		StopPtr start;
-		StopPtr finish;
+		bool is_looped; // для сериализации/десерриализации
+		StopPtr start; // для отрисовки конечных меток
+		StopPtr finish; // для отрисовки конечных меток
 		std::vector<const Stop*> stops;
 	};
 	using BusPtr = const Bus*;
