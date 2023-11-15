@@ -29,9 +29,3 @@ string(REPLACE "protobuf.lib" "protobufd.lib" "Protobuf_LIBRARY_DEBUG" "${Protob
 string(REPLACE "protobuf.a" "protobufd.a" "Protobuf_LIBRARY_DEBUG" "${Protobuf_LIBRARY_DEBUG}")
 
 target_link_libraries(transport_catalogue "$<IF:$<CONFIG:Debug>,${Protobuf_LIBRARY_DEBUG},${Protobuf_LIBRARY}>" Threads::Threads)
-
-add_custom_command(
-	TARGET transport_catalogue
-	POST_BUILD
-	COMMAND ./r.sh #исполняемые файлы, запускаемые скриптом, не должны возвращать код, отличный от 0
-)
